@@ -1,0 +1,425 @@
+import React, { useCallback, useState, useEffect } from "react";
+import "./PostForm.css";
+import { PostCard } from "../PostCard/PostCard";
+import TextLabel from "../PostLabel/TextLabel";
+import { SelectLabel } from "../PostLabel/SelectLabel";
+import { PostCreatePayload, PostUpdatePayload } from "../interface";
+import { createPost, updatePost, deletePost, getAllPosts } from "../../apiConnect";
+
+const categoryOptions = ["Houses", "Cars"];
+const subcategoryOptions = ["For Sale", "For Rent"];
+
+const PostForm = () => {
+  const [author, setAuthor] = useState("");
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [category, setCategory] = useState("Houses");
+  const [subcategory, setSubcategory] = useState("For Sale");
+  const [posts, setPosts] = useState<PostCreatePayload[]>([]);
+  const [errorMessages, setErrorMessages] = useState<string[]>([]);
+
+  const inputFields = () => {
+    setAuthor("");
+    setTitle("");
+    setContent("");
+  };
+
+  const fetchPosts = async () => {
+    try {
+      const response = await getAllPosts();
+      setPosts(response);
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      const newPost: PostCreatePayload = {
+        author,
+        title,
+        content,
+        category,
+        subcategory,
+      };
+
+      try {
+        const response = await createPost(newPost);
+        if (response.errors) {
+          const errorMessages = response.errors;
+          setErrorMessages(errorMessages);
+        } else {
+          setPosts([...posts, response]);
+          inputFields();
+          setErrorMessages([]);
+        }
+      } catch (error) {
+        if (error.response) {
+          const errorResponse = error.response.data;
+          if (errorResponse.errors) {
+            const errorMessages = errorResponse.errors;
+            setErrorMessages(errorMessages);
+          }
+        } else {
+          console.error("Error creating post:", error);
+        }
+      }
+    },
+    [author, title, content, category, subcategory, posts]
+  );
+
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      await deletePost(id);
+      setPosts((prevPosts) => prevPosts.filter((post) => post.id !== id));
+    } catch (error) {
+      console.error("Error deleting post:", error);
+    }
+  }, []);
+
+  const handleUpdate = useCallback(
+    async (id: string) => {
+      const updatedPost: PostUpdatePayload = {
+        id,
+        author,
+        title,
+        content,
+        category,
+        subcategory,
+      };
+
+      try {
+        await updatePost(id, updatedPost);
+        const updatedPosts = posts.map((post) =>
+          post.id === id ? updatedPost : post
+        );
+        setPosts(updatedPosts);
+        inputFields();
+      } catch (error) {
+        console.error("Error updating post:", error);
+      }
+    },
+    [author, title, content, category, subcategory, posts]
+  );
+
+  return (
+    <div>
+      <h2>Create a New Post</h2>
+      <form onSubmit={handleSubmit} className="post-form">
+        <div className="error-messages">
+          {errorMessages.map((errorMessage, index) => (
+            <div key={index} className="error-message">
+              {errorMessage}
+            </div>
+          ))}
+        </div>
+        <TextLabel label="Author" value={author} onChange={setAuthor} />
+        <TextLabel label="Title" value={title} onChange={setTitle} />
+        <TextLabel label="Content" value={content} onChange={setContent} />
+        <SelectLabel
+          label="Category"
+          value={category}
+          onChange={setCategory}
+          options={categoryOptions}
+        />
+        <SelectLabel
+          label="Subcategory"
+          value={subcategory}
+          onChange={setSubcategory}
+          options={subcategoryOptions}
+        />
+        <button type="submit">Submit</button>
+      </form>
+      <div className="submitted-posts">
+        <h2>Submitted Posts</h2>
+        <PostCard
+          posts={posts}
+          handleDelete={handleDelete}
+          handleUpdate={handleUpdate}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default PostForm;
+
+
+
+import React, { useCallback, useEffect, useState } from "react";
+import "./PostForm.css";
+import { PostCard } from "../PostCard/PostCard";
+import TextLabel from "../PostLabel/TextLabel";
+import { SelectLabel } from "../PostLabel/SelectLabel";
+import { PostCreatePayload, PostUpdatePayload } from "../interface";
+import { createPost, updatePost, deletePost } from "../../apiConnect"; // Import your API utility functions
+
+const categoryOptions = ["Houses", "Cars"];
+const subcategoryOptions = ["For Sale", "For Rent"];
+
+const PostForm = () => {
+  const [author, setAuthor] = useState("");
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [category, setCategory] = useState("Houses");
+  const [subcategory, setsubcategory] = useState("For Sale");
+  const [posts, setPosts] = useState<PostCreatePayload[]>([]);
+
+  const inputFields = () => {
+    setAuthor("");
+    setTitle("");
+    setContent("");
+  };
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      const newPost: PostCreatePayload = {
+        author,
+        title,
+        content,
+        category,
+        subcategory,
+      };
+
+      try {
+        const createdPost = await createPost(newPost);
+        setPosts([...posts, createdPost]);
+        inputFields();
+      } catch (error) {
+        alert(`Error creating post:${error}`);
+      }
+    },
+    [author, title, content, category, subcategory, posts]
+  );
+
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      await deletePost(id);
+      setPosts((prevPosts) => prevPosts.filter((post) => post.id !== id));
+      document.location.reload();
+    } catch (error) {
+      console.error("Error deleting post:", error);
+    }
+  }, []);
+  const handleUpdate = useCallback(
+    async (id: string) => {
+      const updatedPost: PostUpdatePayload = {
+        id,
+        author,
+        title,
+        content,
+        category,
+        subcategory,
+      };
+
+      try {
+        await updatePost(id, updatedPost);
+        const updatedPosts = posts.map((post) =>
+          post.id === id ? updatedPost : post
+        );
+        setPosts(updatedPosts);
+        inputFields();
+      
+      } catch (error) {
+        console.error("Error updating post:", error);
+      }
+    },
+    [author, title, content, category, subcategory, posts]
+  );
+
+  return (
+    <div>
+      <div></div>
+      <h2>Create a New Post</h2>
+      <form onSubmit={handleSubmit} className="post-form">
+        <TextLabel label="Author" value={author} onChange={setAuthor} />
+        <TextLabel label="Title" value={title} onChange={setTitle} />
+        <TextLabel label="Content" value={content} onChange={setContent} />
+        <SelectLabel
+          label=" Category"
+          value={category}
+          onChange={setCategory}
+          options={categoryOptions}
+        />
+        <SelectLabel
+          label="Subcategory"
+          value={subcategory}
+          onChange={setsubcategory}
+          options={subcategoryOptions}
+        />
+        <button type="submit">Submit</button>
+      </form>
+      <div className="submitted-posts">
+        <h2>Submitted Posts</h2>
+        <PostCard
+          posts={posts}
+          handleDelete={handleDelete}
+          handleUpdate={handleUpdate}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default PostForm;
+
+
+// // import React, { useReducer } from "react";
+// // import "./PostForm.css";
+// // import { PostCard } from "../PostCard/PostCard";
+// // import { TextLabel } from "../PostLabel/TextLabel";
+// // import { SelectLabel } from "../PostLabel/SelectLabel";
+// // import { postState, postReducer } from "./postReducer";
+
+// // const categoryOptions = ["Houses", "Cars"];
+// // const subcategoryOptions = ["For Sale", "For Rent"];
+
+// // const PostForm = () => {
+// //   const [state, dispatch] = useReducer(postReducer, postState);
+
+// //   const handleSubmit = (e: React.FormEvent) => {
+// //     e.preventDefault();
+// //     dispatch({
+// //       type: "addPost",
+// //       payload: undefined,
+// //       id: "",
+// //       author: "",
+// //       title: "",
+// //       content: "",
+// //       category: "",
+// //       subcategory: ""
+// //     });
+// //   };
+
+// //   const handleDelete = (id: string) => {
+// //     dispatch({
+// //       type: "deletePost",
+// //       id,
+// //       payload: undefined,
+// //       author: "",
+// //       title: "",
+// //       content: "",
+// //       category: "",
+// //       subcategory: ""
+// //     });
+// //   };
+
+// //   const handleUpdate = (id: string) => {
+// //     dispatch({
+// //       type: "updatePost",
+// //       id,
+// //       payload: undefined,
+// //       author: "",
+// //       title: "",
+// //       content: "",
+// //       category: "",
+// //       subcategory: ""
+// //     });
+// //   };
+
+// //   return (
+// //     <div>
+// //       <h2>Create a New Post</h2>
+// //       <form onSubmit={handleSubmit} className="post-form">
+// //         <TextLabel
+// //           label="Author"
+// //           value={state.author}
+// //           onChange={(value: any) =>
+// //             dispatch({
+// //               type: "setAuthor",
+// //               author: value,
+// //               payload: undefined,
+// //               id: "",
+// //               title: "",
+// //               content: "",
+// //               category: "",
+// //               subcategory: ""
+// //             })
+// //           }
+// //         />
+// //         <TextLabel
+// //           label="Title"
+// //           value={state.title}
+// //           onChange={(value: any) =>
+// //             dispatch({
+// //               type: "setTitle",
+// //               title: value,
+// //               payload: undefined,
+// //               id: "",
+// //               author: "",
+// //               content: "",
+// //               category: "",
+// //               subcategory: ""
+// //             })
+// //           }
+// //         />
+// //         <TextLabel
+// //           label="Content"
+// //           value={state.content}
+// //           onChange={(value: any) =>
+// //             dispatch({
+// //               type: "setContent",
+// //               content: value,
+// //               payload: undefined,
+// //               id: "",
+// //               author: "",
+// //               title: "",
+// //               category: "",
+// //               subcategory: ""
+// //             })
+// //           }
+// //         />
+// //         <SelectLabel
+// //           label="Category"
+// //           value={state.category}
+// //           options={categoryOptions}
+// //           onChange={(value: any) =>
+// //             dispatch({
+// //               type: "setCategory",
+// //               category: value,
+// //               payload: undefined,
+// //               id: "",
+// //               author: "",
+// //               title: "",
+// //               content: "",
+// //               subcategory: ""
+// //             })
+// //           }
+// //         />
+// //         <SelectLabel
+// //           label="subcategory"
+// //           value={state.subcategory}
+// //           options={subcategoryOptions}
+// //           onChange={(value: any) =>
+// //             dispatch({
+// //               type: "setsubcategory",
+// //               subcategory: value,
+// //               payload: undefined,
+// //               id: "",
+// //               author: "",
+// //               title: "",
+// //               content: "",
+// //               category: ""
+// //             })
+// //           }
+// //         />
+// //         <button type="submit">Submit</button>
+// //       </form>
+// //       <div className="submitted-posts">
+// //         <h2>Submitted Posts</h2>
+// //         <PostCard
+// //           posts={state.posts}
+// //           handleDelete={handleDelete}
+// //           handleUpdate={handleUpdate}
+// //         />
+// //       </div>
+// //     </div>
+// //   );
+// // };
+
+// // export default PostForm;

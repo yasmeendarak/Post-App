@@ -1,0 +1,44 @@
+version: '3.8'
+services:
+  mongo:
+    image: mongo:latest
+    environment:
+      - MONGODB_URI=mongodb+srv://yasmeen:yasmeenDARAK2000@cluster0.ccuy8ch.mongodb.net/mydatabase?retryWrites=true&w=majority
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+   
+  app:
+    build: .
+    container_name: nodeapp
+    ports:
+      - "3004:3004" 
+    depends_on:
+      - mongo
+    environment:
+      - MONGODB_URI=mongodb+srv://yasmeen:yasmeenDARAK2000@cluster0.ccuy8ch.mongodb.net/mydatabase?retryWrites=true&w=majority
+      - MYSQL_HOST=mysql
+      - MYSQL_USER=post_user
+      - MYSQL_PASSWORD=post_password
+      - MYSQL_DATABASE=post_database
+    
+  mysql:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: post_database
+      MYSQL_USER: post_user
+      MYSQL_PASSWORD: post_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:   
+  mongo-data:
+  mysql_data:
+
+networks:
+  app_network:
+    external: true
